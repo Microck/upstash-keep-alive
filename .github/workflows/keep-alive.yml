@@ -2,7 +2,7 @@ name: upstash-keep-alive
 
 on:
   schedule:
-    - cron: "0 8 * * *"
+    - cron: "0 0 */2 * *" # Run every 2 days at midnight UTC
   workflow_dispatch:
 
 jobs:
