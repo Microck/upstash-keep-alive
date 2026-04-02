@@ -1,72 +1,60 @@
-# upstash redis keep-alive
+# upstash-redis-keep-alive
 
-python script to keep your upstash redis database from being archived for inactivity.
+Python script to keep your Upstash Redis database from being archived for inactivity.
 
-upstash docs mention free tier databases are archived after a minimum of 14 days of inactivity.
+Upstash archives free-tier databases after 14 days of inactivity. **PING does not count** — only actual data operations (SET, GET, etc.) prevent archival.
 
-## important: why the old version didn't work
+This script performs a `SET` with a 30-day expiry on a `upstash-keepalive` key, creating real database activity.
 
-**the previous version used the `PING` command, which does NOT count as database activity.**
-
-upstash only considers actual data operations (SET, GET, EXPIRE, etc.) as activity. simply pinging the database endpoint is not enough to prevent archival.
-
-this updated version uses `SET` with an `EXPIRE` to actually write data, which counts as real activity.
-
-## how it works
-
-performs a `SET` operation with a 30-day expiration on a `upstash-keepalive` key. this creates actual database activity that upstash recognizes, preventing the 14-day archival.
-
-## setup
-
-### 1. install dependencies
+## Quick start
 
 ```bash
 pip install -r requirements.txt
-```
-
-### 2. set environment variables
-
-```bash
 export UPSTASH_REDIS_REST_URL="https://your-database.upstash.io"
 export UPSTASH_REDIS_REST_TOKEN="your-rest-token"
-```
-
-### 3. run script
-
-```bash
 python keep_alive.py
 ```
 
-## automate with github actions (recommended)
+## Automation
 
-the included github actions workflow runs every 2 days automatically.
+### GitHub Actions
 
-### setup steps:
+Create `.github/workflows/keep-alive.yml`:
 
-1. fork or clone this repo
-2. go to your repo's **settings > secrets and variables > actions**
-3. add two repository secrets:
-   - `UPSTASH_REDIS_REST_URL` - your upstash redis rest url
-   - `UPSTASH_REDIS_REST_TOKEN` - your upstash redis rest token
+```yaml
+name: Upstash Keep-Alive
+on:
+  schedule:
+    - cron: "0 0 */2 * *"  # every 2 days
+  workflow_dispatch:
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python keep_alive.py
+        env:
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+```
 
-4. the workflow will run automatically every 2 days
+Add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` as repository secrets under **Settings > Secrets and variables > Actions**.
 
-you can also trigger it manually from the **actions** tab by clicking "run workflow".
-
-## automate with cron
-
-if you prefer to run this on your own server, add to crontab (`crontab -e`) to run every 2 days:
+### Cron
 
 ```bash
 0 0 */2 * * /usr/bin/python3 /path/to/keep_alive.py >> /var/log/upstash_keep_alive.log 2>&1
 ```
 
-## frequency recommendations
+## Why not PING?
 
-- **run at least every 7-10 days** to stay safely under the 14-day threshold
-- the github actions workflow runs every 2 days for extra safety
+Upstash only considers data operations as activity. PING returns `PONG` but does not reset the inactivity timer. See [Upstash FAQ](https://upstash.com/docs/redis/help/faq) ("What happens if my database is not used?").
 
-## references
+## References
 
-- https://upstash.com/docs/redis/features/restapi
-- https://upstash.com/docs/redis/help/faq (see "what happens if my database is not used?")
+- [Upstash REST API docs](https://upstash.com/docs/redis/features/restapi)
+- [Upstash FAQ](https://upstash.com/docs/redis/help/faq)
