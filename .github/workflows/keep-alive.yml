@@ -5,9 +5,13 @@ on:
     - cron: "0 0 */2 * *" # Run every 2 days at midnight UTC
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  ping:
+  keep-alive:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
       - name: Checkout
@@ -16,12 +20,13 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
+          cache: pip
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Ping Upstash
+      - name: Keep Alive
         env:
           UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
